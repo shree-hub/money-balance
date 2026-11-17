@@ -1,0 +1,6 @@
+{
+  "name": "My Earnings & EMI Manager",
+  "description": "Personal delivery earnings, expense ledger, and multi-loan EMI repayment manager for Bengaluru delivery partners on Rapido, Bounce, and Shiprocket.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

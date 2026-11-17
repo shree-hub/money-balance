@@ -1,0 +1,350 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Personal settings, targets, and opening balance for the delivery worker.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Owner Firebase Auth UID"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "User display name"
+        },
+        "email": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 150,
+          "description": "User verified email address"
+        },
+        "dailyTarget": {
+          "type": "number",
+          "description": "Daily earning target in INR (default 1500)"
+        },
+        "startingBalance": {
+          "type": "number",
+          "description": "Opening available balance in INR (default 1800 on 16 Nov 2026)"
+        },
+        "startingBalanceDate": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 10,
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Date of starting balance in YYYY-MM-DD"
+        },
+        "evWeeklyRent": {
+          "type": "number",
+          "description": "Weekly EV rental cost in INR (default 2300)"
+        },
+        "dailyFoodBudget": {
+          "type": "number",
+          "description": "Daily food budget in INR (default 200)"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp"
+        }
+      },
+      "required": [
+        "userId",
+        "displayName",
+        "email",
+        "dailyTarget",
+        "startingBalance",
+        "startingBalanceDate",
+        "evWeeklyRent",
+        "dailyFoodBudget",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "EarningEntry": {
+      "title": "EarningEntry",
+      "description": "Daily delivery earnings log for Rapido, Bounce, or Shiprocket.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "date": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 10,
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "app": {
+          "type": "string",
+          "enum": ["Rapido", "Bounce", "Shiprocket"]
+        },
+        "baseAmount": {
+          "type": "number"
+        },
+        "incentive": {
+          "type": "number"
+        },
+        "bonus": {
+          "type": "number"
+        },
+        "totalAmount": {
+          "type": "number"
+        },
+        "shiftLabel": {
+          "type": "string",
+          "maxLength": 50
+        },
+        "allowMultipleShifts": {
+          "type": "boolean"
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "userId",
+        "date",
+        "app",
+        "baseAmount",
+        "incentive",
+        "bonus",
+        "totalAmount",
+        "shiftLabel",
+        "allowMultipleShifts",
+        "notes",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "EmiLoan": {
+      "title": "EmiLoan",
+      "description": "Loan EMI obligation with due date, amount, paid amount, and status.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "lender": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "monthCycle": {
+          "type": "string",
+          "enum": ["November 2026", "December 2026", "Other"]
+        },
+        "dueDate": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 10,
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "amountDue": {
+          "type": "number"
+        },
+        "amountPaid": {
+          "type": "number"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "partial", "paid", "overdue"]
+        },
+        "lastPaidDate": {
+          "type": "string",
+          "maxLength": 10
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "userId",
+        "title",
+        "lender",
+        "monthCycle",
+        "dueDate",
+        "amountDue",
+        "amountPaid",
+        "status",
+        "lastPaidDate",
+        "notes",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "EmiPayment": {
+      "title": "EmiPayment",
+      "description": "Individual EMI payment transaction record.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "emiId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "emiTitle": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "monthCycle": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "amount": {
+          "type": "number"
+        },
+        "paymentDate": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 10,
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "paymentMode": {
+          "type": "string",
+          "enum": ["UPI", "Bank Transfer", "Cash", "Auto Debit"]
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "userId",
+        "emiId",
+        "emiTitle",
+        "monthCycle",
+        "amount",
+        "paymentDate",
+        "paymentMode",
+        "notes",
+        "createdAt"
+      ]
+    },
+    "ExpenseEntry": {
+      "title": "ExpenseEntry",
+      "description": "Daily and weekly expense log (EV rental, food, money sent home, personal, other).",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "date": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 10,
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "category": {
+          "type": "string",
+          "enum": ["EV Rental", "Food", "Money Sent Home", "Personal", "Other"]
+        },
+        "amount": {
+          "type": "number"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "isRecurring": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "userId",
+        "date",
+        "category",
+        "amount",
+        "description",
+        "isRecurring",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Owner-only user profile and financial target settings."
+    },
+    "/users/{userId}/earnings/{earningId}": {
+      "schema": { "$ref": "#/entities/EarningEntry" },
+      "description": "Daily delivery app earnings entries owned by the user."
+    },
+    "/users/{userId}/emis/{emiId}": {
+      "schema": { "$ref": "#/entities/EmiLoan" },
+      "description": "Loan EMI schedule and status records owned by the user."
+    },
+    "/users/{userId}/emiPayments/{paymentId}": {
+      "schema": { "$ref": "#/entities/EmiPayment" },
+      "description": "Immutable EMI payment history transactions owned by the user."
+    },
+    "/users/{userId}/expenses/{expenseId}": {
+      "schema": { "$ref": "#/entities/ExpenseEntry" },
+      "description": "Daily and recurring expense entries owned by the user."
+    }
+  }
+}

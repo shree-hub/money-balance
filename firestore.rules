@@ -1,0 +1,267 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Global Hardened Primitives ---
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidDateString(val) {
+      return val is string && val.size() == 10 && val.matches('^\\d{4}-\\d{2}-\\d{2}$');
+    }
+
+    function userExists(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId));
+    }
+
+    // --- Validation Blueprints ---
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll([
+        'userId', 'displayName', 'email', 'dailyTarget', 'startingBalance',
+        'startingBalanceDate', 'evWeeklyRent', 'dailyFoodBudget', 'createdAt', 'updatedAt'
+      ])
+      && data.keys().hasOnly([
+        'userId', 'displayName', 'email', 'dailyTarget', 'startingBalance',
+        'startingBalanceDate', 'evWeeklyRent', 'dailyFoodBudget', 'createdAt', 'updatedAt'
+      ])
+      && data.userId == request.auth.uid
+      && data.userId == userId
+      && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 100
+      && data.email is string && data.email.size() >= 3 && data.email.size() <= 150
+      && data.dailyTarget is number && data.dailyTarget >= 100 && data.dailyTarget <= 100000
+      && data.startingBalance is number && data.startingBalance >= 0 && data.startingBalance <= 10000000
+      && isValidDateString(data.startingBalanceDate)
+      && data.evWeeklyRent is number && data.evWeeklyRent >= 0 && data.evWeeklyRent <= 100000
+      && data.dailyFoodBudget is number && data.dailyFoodBudget >= 0 && data.dailyFoodBudget <= 50000
+      && data.createdAt is timestamp
+      && data.updatedAt is timestamp;
+    }
+
+    function isValidEarning(data, userId) {
+      return data.keys().hasAll([
+        'userId', 'date', 'app', 'baseAmount', 'incentive', 'bonus',
+        'totalAmount', 'shiftLabel', 'allowMultipleShifts', 'notes', 'createdAt', 'updatedAt'
+      ])
+      && data.keys().hasOnly([
+        'userId', 'date', 'app', 'baseAmount', 'incentive', 'bonus',
+        'totalAmount', 'shiftLabel', 'allowMultipleShifts', 'notes', 'createdAt', 'updatedAt'
+      ])
+      && data.userId == request.auth.uid
+      && data.userId == userId
+      && isValidDateString(data.date)
+      && data.app in ['Rapido', 'Bounce', 'Shiprocket']
+      && data.baseAmount is number && data.baseAmount >= 0 && data.baseAmount <= 500000
+      && data.incentive is number && data.incentive >= 0 && data.incentive <= 500000
+      && data.bonus is number && data.bonus >= 0 && data.bonus <= 500000
+      && data.totalAmount is number && data.totalAmount >= 0 && data.totalAmount <= 1500000
+      && data.totalAmount == data.baseAmount + data.incentive + data.bonus
+      && data.shiftLabel is string && data.shiftLabel.size() <= 50
+      && data.allowMultipleShifts is bool
+      && data.notes is string && data.notes.size() <= 300
+      && data.createdAt is timestamp
+      && data.updatedAt is timestamp;
+    }
+
+    function isValidEmi(data, userId) {
+      return data.keys().hasAll([
+        'userId', 'title', 'lender', 'monthCycle', 'dueDate',
+        'amountDue', 'amountPaid', 'status', 'lastPaidDate', 'notes', 'createdAt', 'updatedAt'
+      ])
+      && data.keys().hasOnly([
+        'userId', 'title', 'lender', 'monthCycle', 'dueDate',
+        'amountDue', 'amountPaid', 'status', 'lastPaidDate', 'notes', 'createdAt', 'updatedAt'
+      ])
+      && data.userId == request.auth.uid
+      && data.userId == userId
+      && data.title is string && data.title.size() >= 1 && data.title.size() <= 100
+      && data.lender is string && data.lender.size() >= 1 && data.lender.size() <= 100
+      && data.monthCycle in ['November 2026', 'December 2026', 'Other']
+      && isValidDateString(data.dueDate)
+      && data.amountDue is number && data.amountDue > 0 && data.amountDue <= 10000000
+      && data.amountPaid is number && data.amountPaid >= 0 && data.amountPaid <= data.amountDue
+      && data.status in ['pending', 'partial', 'paid', 'overdue']
+      && data.lastPaidDate is string && (data.lastPaidDate == '' || isValidDateString(data.lastPaidDate))
+      && data.notes is string && data.notes.size() <= 300
+      && data.createdAt is timestamp
+      && data.updatedAt is timestamp;
+    }
+
+    function isValidEmiPayment(data, userId) {
+      return data.keys().hasAll([
+        'userId', 'emiId', 'emiTitle', 'monthCycle', 'amount',
+        'paymentDate', 'paymentMode', 'notes', 'createdAt'
+      ])
+      && data.keys().hasOnly([
+        'userId', 'emiId', 'emiTitle', 'monthCycle', 'amount',
+        'paymentDate', 'paymentMode', 'notes', 'createdAt'
+      ])
+      && data.userId == request.auth.uid
+      && data.userId == userId
+      && isValidId(data.emiId)
+      && data.emiTitle is string && data.emiTitle.size() >= 1 && data.emiTitle.size() <= 100
+      && data.monthCycle is string && data.monthCycle.size() >= 1 && data.monthCycle.size() <= 40
+      && data.amount is number && data.amount > 0 && data.amount <= 10000000
+      && isValidDateString(data.paymentDate)
+      && data.paymentMode in ['UPI', 'Bank Transfer', 'Cash', 'Auto Debit']
+      && data.notes is string && data.notes.size() <= 300
+      && data.createdAt is timestamp;
+    }
+
+    function isValidExpense(data, userId) {
+      return data.keys().hasAll([
+        'userId', 'date', 'category', 'amount', 'description',
+        'isRecurring', 'createdAt', 'updatedAt'
+      ])
+      && data.keys().hasOnly([
+        'userId', 'date', 'category', 'amount', 'description',
+        'isRecurring', 'createdAt', 'updatedAt'
+      ])
+      && data.userId == request.auth.uid
+      && data.userId == userId
+      && isValidDateString(data.date)
+      && data.category in ['EV Rental', 'Food', 'Money Sent Home', 'Personal', 'Other']
+      && data.amount is number && data.amount > 0 && data.amount <= 10000000
+      && data.description is string && data.description.size() <= 200
+      && data.isRecurring is bool
+      && data.createdAt is timestamp
+      && data.updatedAt is timestamp;
+    }
+
+    // --- User Profile Collection (Strict Owner PII Isolation) ---
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if false;
+      allow create: if isOwner(userId)
+        && isValidId(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isOwner(userId)
+        && isValidId(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().userId == existing().userId
+        && incoming().email == existing().email
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['dailyTarget', 'updatedAt']) ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['startingBalance', 'startingBalanceDate', 'updatedAt']) ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['evWeeklyRent', 'dailyFoodBudget', 'updatedAt']) ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'dailyTarget', 'startingBalance', 'startingBalanceDate', 'evWeeklyRent', 'dailyFoodBudget', 'updatedAt'])
+        );
+      allow delete: if false;
+
+      // --- Daily Delivery Earnings ---
+      match /earnings/{earningId} {
+        allow get: if isOwner(userId) && isValidId(earningId) && userExists(userId);
+        allow list: if isOwner(userId) && existing().userId == request.auth.uid;
+        allow create: if isOwner(userId)
+          && isValidId(earningId)
+          && isValidEarning(incoming(), userId)
+          && userExists(userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+        allow update: if isOwner(userId)
+          && isValidId(earningId)
+          && isValidEarning(incoming(), userId)
+          && userExists(userId)
+          && incoming().userId == existing().userId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'date', 'app', 'baseAmount', 'incentive', 'bonus', 'totalAmount',
+            'shiftLabel', 'allowMultipleShifts', 'notes', 'updatedAt'
+          ]);
+        allow delete: if isOwner(userId) && isValidId(earningId) && userExists(userId);
+      }
+
+      // --- EMI Loans Schedule ---
+      match /emis/{emiId} {
+        allow get: if isOwner(userId) && isValidId(emiId) && userExists(userId);
+        allow list: if isOwner(userId) && existing().userId == request.auth.uid;
+        allow create: if isOwner(userId)
+          && isValidId(emiId)
+          && isValidEmi(incoming(), userId)
+          && userExists(userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+        allow update: if isOwner(userId)
+          && isValidId(emiId)
+          && isValidEmi(incoming(), userId)
+          && userExists(userId)
+          && incoming().userId == existing().userId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && (
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'title', 'lender', 'monthCycle', 'dueDate', 'amountDue', 'notes', 'status', 'updatedAt'
+            ]) ||
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'amountPaid', 'status', 'lastPaidDate', 'updatedAt'
+            ])
+          );
+        allow delete: if isOwner(userId) && isValidId(emiId) && userExists(userId);
+      }
+
+      // --- EMI Payment History (Append-Only Ledger) ---
+      match /emiPayments/{paymentId} {
+        allow get: if isOwner(userId) && isValidId(paymentId) && userExists(userId);
+        allow list: if isOwner(userId) && existing().userId == request.auth.uid;
+        allow create: if isOwner(userId)
+          && isValidId(paymentId)
+          && isValidEmiPayment(incoming(), userId)
+          && userExists(userId)
+          && exists(/databases/$(database)/documents/users/$(userId)/emis/$(incoming().emiId))
+          && incoming().createdAt == request.time;
+        allow update: if false;
+        allow delete: if isOwner(userId) && isValidId(paymentId) && userExists(userId);
+      }
+
+      // --- Expense Ledger ---
+      match /expenses/{expenseId} {
+        allow get: if isOwner(userId) && isValidId(expenseId) && userExists(userId);
+        allow list: if isOwner(userId) && existing().userId == request.auth.uid;
+        allow create: if isOwner(userId)
+          && isValidId(expenseId)
+          && isValidExpense(incoming(), userId)
+          && userExists(userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+        allow update: if isOwner(userId)
+          && isValidId(expenseId)
+          && isValidExpense(incoming(), userId)
+          && userExists(userId)
+          && incoming().userId == existing().userId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'date', 'category', 'amount', 'description', 'isRecurring', 'updatedAt'
+          ]);
+        allow delete: if isOwner(userId) && isValidId(expenseId) && userExists(userId);
+      }
+    }
+  }
+}
